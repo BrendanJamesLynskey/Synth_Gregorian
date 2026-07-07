@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synth Gregorian — Plainsong Synthesizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Cinzel:wght@400;600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="icon-border-top"></div>
+    <div class="incense-container" id="incenseContainer"></div>
+
+    <header>
+        <div class="cross-ornament">&#x2626;</div>
+        <h1>Synth Gregorian</h1>
+        <p class="subtitle">Plainsong &#8226; Formant Vocal Synthesis</p>
+        <div class="cross-ornament">&#x2626;</div>
+    </header>
+
+    <main>
+        <!-- Illuminated initial -->
+        <div class="icon-frame" id="mainIcon">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Illuminated initial G">
+                <defs>
+                    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stop-color="#f0d67a"/><stop offset="0.5" stop-color="#c8a84e"/><stop offset="1" stop-color="#8b6914"/>
+                    </linearGradient>
+                    <radialGradient id="halo" cx="0.5" cy="0.4" r="0.7">
+                        <stop offset="0" stop-color="#3a5a7a"/><stop offset="1" stop-color="#16233a"/>
+                    </radialGradient>
+                </defs>
+                <rect x="8" y="8" width="184" height="184" rx="6" fill="url(#halo)" stroke="#8b6914" stroke-width="2"/>
+                <rect x="16" y="16" width="168" height="168" rx="4" fill="none" stroke="#7a1f1f" stroke-width="1.5" opacity="0.7"/>
+                <!-- vine flourishes -->
+                <path d="M28 30 q20 -14 44 -4 M172 30 q-20 -14 -44 -4 M28 170 q20 14 44 4 M172 170 q-20 14 -44 4" fill="none" stroke="#c8a84e" stroke-width="1.4" opacity="0.55"/>
+                <circle cx="30" cy="30" r="3.5" fill="#a83232"/><circle cx="170" cy="30" r="3.5" fill="#a83232"/>
+                <circle cx="30" cy="170" r="3.5" fill="#a83232"/><circle cx="170" cy="170" r="3.5" fill="#a83232"/>
+                <!-- initial G -->
+                <text x="100" y="140" text-anchor="middle" font-family="UnifrakturMaguntia, serif" font-size="150" fill="url(#gold)" stroke="#5a4408" stroke-width="1.2">G</text>
+                <!-- four-line stave with a neume -->
+                <g opacity="0.8" stroke="#e8d9b0" stroke-width="1">
+                    <line x1="46" y1="60" x2="154" y2="60"/><line x1="46" y1="70" x2="154" y2="70"/><line x1="46" y1="80" x2="154" y2="80"/>
+                </g>
+                <rect x="70" y="66" width="8" height="8" fill="#1c1710" transform="rotate(45 74 70)"/>
+                <rect x="96" y="56" width="8" height="8" fill="#7a1f1f" transform="rotate(45 100 60)"/>
+                <rect x="122" y="66" width="8" height="8" fill="#1c1710" transform="rotate(45 126 70)"/>
+            </svg>
+        </div>
+
+        <div class="controls-panel">
+            <div class="ornament-line"><span class="ornament-dot"></span><span class="ornament-rule"></span><span class="ornament-cross">&#x2626;</span><span class="ornament-rule"></span><span class="ornament-dot"></span></div>
+
+            <div class="transport">
+                <button class="btn-chant" id="btnChant" onclick="toggleChant()">
+                    <span class="btn-icon">&#x266A;</span>
+                    <span class="btn-text">Begin Chant</span>
+                </button>
+            </div>
+
+            <!-- Church modes -->
+            <div class="control-group">
+                <label class="control-label">&#x2726; Mode (Church Tone)</label>
+                <div class="mode-selector">
+                    <button class="mode-btn active" data-mode="1" onclick="setMode(1)">I<small>Dorian</small></button>
+                    <button class="mode-btn" data-mode="2" onclick="setMode(2)">II<small>Hypodor.</small></button>
+                    <button class="mode-btn" data-mode="3" onclick="setMode(3)">III<small>Phrygian</small></button>
+                    <button class="mode-btn" data-mode="4" onclick="setMode(4)">IV<small>Hypophr.</small></button>
+                    <button class="mode-btn" data-mode="5" onclick="setMode(5)">V<small>Lydian</small></button>
+                    <button class="mode-btn" data-mode="6" onclick="setMode(6)">VI<small>Hypolyd.</small></button>
+                    <button class="mode-btn" data-mode="7" onclick="setMode(7)">VII<small>Mixolyd.</small></button>
+                    <button class="mode-btn" data-mode="8" onclick="setMode(8)">VIII<small>Hypomix.</small></button>
+                </div>
+            </div>
+
+            <div class="sliders-grid">
+                <div class="control-group"><label class="control-label">&#x2726; Voice</label><input type="range" class="slider" id="voiceVol" min="0" max="100" value="75" oninput="updateVoice()"></div>
+                <div class="control-group"><label class="control-label">&#x2726; Breath</label><input type="range" class="slider" id="breathAmt" min="0" max="100" value="35" oninput="updateBreath()"></div>
+                <div class="control-group"><label class="control-label">&#x2726; Abbey Reverb</label><input type="range" class="slider" id="reverbMix" min="0" max="100" value="60" oninput="updateReverb()"></div>
+                <div class="control-group"><label class="control-label">&#x2726; Pace</label><input type="range" class="slider" id="tempoSlider" min="34" max="80" value="52" oninput="updateTempo()"></div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">&#x2726; Schola</label>
+                <div class="mode-selector">
+                    <button class="choir-btn active" data-voices="1" onclick="setVoices(1)">Cantor</button>
+                    <button class="choir-btn" data-voices="3" onclick="setVoices(3)">Schola</button>
+                    <button class="choir-btn" data-voices="6" onclick="setVoices(6)">Full Choir</button>
+                </div>
+            </div>
+
+            <div class="ornament-line"><span class="ornament-dot"></span><span class="ornament-rule"></span><span class="ornament-cross">&#x2626;</span><span class="ornament-rule"></span><span class="ornament-dot"></span></div>
+        </div>
+
+        <div class="visualization-frame">
+            <canvas id="vizCanvas" width="800" height="200"></canvas>
+        </div>
+
+        <!-- About this style -->
+        <div class="about-panel">
+            <h2>About Gregorian Chant</h2>
+            <div class="era">Plainsong &#8226; c. 9th&ndash;10th century &#8226; Frankish–Roman</div>
+            <p><span class="drop">G</span>regorian chant is the monophonic, unaccompanied sacred song of the Western Latin Church &mdash; a single melodic line, sung in free rhythm to Latin scripture, with no harmony and no fixed beat. It crystallised in the Carolingian empire from a fusion of Roman and Gallican traditions and was later credited (legendarily) to Pope Gregory I.</p>
+            <p>Its melodies move mostly by step within one of <em>eight church modes</em>, rising from a <em>finalis</em> to recite on a <em>tenor</em> (reciting tone) before cadencing home. Text is set syllabically or spun into long melismatic <em>neumes</em>. This engine recreates the singing voice itself with <em>source&ndash;filter synthesis</em>: a glottal pulse shaped by resonant vowel formants.</p>
+            <div class="lineage">
+                <h3>Where it sits in the lineage</h3>
+                <p>Plainchant is the root of all later Western music. Add a second voice to it and you get <em>organum</em>; layer and organise those voices rhythmically and you reach the polyphony of Notre&nbsp;Dame and the Ars&nbsp;Nova. Its melodies also became the fixed <em>cantus firmus</em> beneath centuries of polyphony.</p>
+                <div class="lineage-chain">
+                    <span class="node current">Plainsong</span>
+                    <span class="arrow">&rarr;</span>
+                    <a href="https://brendanjameslynskey.github.io/Synth_Organum/">Organum</a>
+                    <span class="arrow">&rarr;</span>
+                    <a href="https://brendanjameslynskey.github.io/Synth_ArsNova/">Ars Nova</a>
+                    <span class="arrow">&#8231;&#8231;&#8231;</span>
+                    <a href="https://brendanjameslynskey.github.io/Synth_Troubadour/">Troubadour</a>
+                    <span class="arrow">&rarr;</span>
+                    <a href="https://brendanjameslynskey.github.io/Synth_Estampie/">Estampie</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="cross-ornament small">&#x2626;</div>
+        <p>Cantate Domino canticum novum</p>
+        <p class="latin">Sing to the Lord a new song</p>
+    </footer>
+
+    <script src="gregorian-engine.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
