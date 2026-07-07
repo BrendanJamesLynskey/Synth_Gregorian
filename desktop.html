@@ -16,7 +16,7 @@
     <header>
         <div class="cross-ornament">&#x2626;</div>
         <h1>Synth Gregorian</h1>
-        <p class="subtitle">Plainsong &#8226; Formant Vocal Synthesis</p>
+        <p class="subtitle">Plainsong &#8226; FOF Vocal Synthesis</p>
         <div class="cross-ornament">&#x2626;</div>
     </header>
 
@@ -103,7 +103,7 @@
             <h2>About Gregorian Chant</h2>
             <div class="era">Plainsong &#8226; c. 9th&ndash;10th century &#8226; Frankish–Roman</div>
             <p><span class="drop">G</span>regorian chant is the monophonic, unaccompanied sacred song of the Western Latin Church &mdash; a single melodic line, sung in free rhythm to Latin scripture, with no harmony and no fixed beat. It crystallised in the Carolingian empire from a fusion of Roman and Gallican traditions and was later credited (legendarily) to Pope Gregory I.</p>
-            <p>Its melodies move mostly by step within one of <em>eight church modes</em>, rising from a <em>finalis</em> to recite on a <em>tenor</em> (reciting tone) before cadencing home. Text is set syllabically or spun into long melismatic <em>neumes</em>. This engine recreates the singing voice itself with <em>source&ndash;filter synthesis</em>: a glottal pulse shaped by resonant vowel formants.</p>
+            <p>Its melodies move mostly by step within one of <em>eight church modes</em>, rising from a <em>finalis</em> to recite on a <em>tenor</em> (reciting tone) before cadencing home. Text is set syllabically or spun into long melismatic <em>neumes</em>. This engine recreates the singing voice itself with the shared <em>FOF vocal-synthesis</em> library (<code>vocal-voices.js</code>) &mdash; the IRCAM <em>CHANT</em> method, a burst of overlapping formant grains per glottal pulse.</p>
             <div class="lineage">
                 <h3>Where it sits in the lineage</h3>
                 <p>Plainchant is the root of all later Western music. Add a second voice to it and you get <em>organum</em>; layer and organise those voices rhythmically and you reach the polyphony of Notre&nbsp;Dame and the Ars&nbsp;Nova. Its melodies also became the fixed <em>cantus firmus</em> beneath centuries of polyphony.</p>
@@ -128,6 +128,7 @@
         <p class="latin">Sing to the Lord a new song</p>
     </footer>
 
+    <script src="vocal-voices.js"></script>
     <script src="gregorian-engine.js"></script>
     <script src="app.js"></script>
 </body>

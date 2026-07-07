@@ -1,6 +1,6 @@
 # Synth Gregorian — Plainsong Synthesizer
 
-A web-based synthesizer that sings **Gregorian chant** in real time in the browser. No samples, no libraries — the singing voice itself is synthesized with the classic **source–filter (formant) technique** using only the Web Audio API.
+A web-based synthesizer that sings **Gregorian chant** in real time in the browser. No samples, no external dependencies — the singing voice itself is synthesized with the shared **FOF vocal-synthesis** library ([`vocal-voices.js`](vocal-voices.js), the IRCAM *CHANT* method) using only the Web Audio API.
 
 **[Launch the app](https://brendanjameslynskey.github.io/Synth_Gregorian/)** — auto-detects your device and recommends desktop or mobile.
 
@@ -14,12 +14,11 @@ Its melodies move mostly by step within one of **eight church modes**, rising fr
 
 ## How it sounds high quality
 
-Rather than pure tones, the engine models the **human singing voice**:
+Rather than pure tones, the engine sings each monk with the shared **FOF vocal-synthesis** library ([`vocal-voices.js`](vocal-voices.js), default technique **FOF** — the IRCAM *CHANT* method):
 
-- **Source** — a *glottal pulse*: a custom `PeriodicWave` whose harmonics roll off ≈ 12 dB/octave, like flow through vibrating vocal folds.
-- **Filter** — a bank of **four parallel resonant band-pass formants** that shape the source into Latin vowels (a e i o u). Each singer keeps a persistent "vocal tract"; only the pitch changes from note to note, exactly as in real singing. Vowels morph continuously as the text unfolds.
-- **Breath** — band-passed noise adds air and consonantal texture.
-- **Ensemble** — a *schola* of detuned, jittered voices with independent vibrato, plus a large stone-**abbey convolution reverb** (~5 s tail with early reflections).
+- **FOF grains** — once per glottal period a burst of overlapping damped formant **grains** is fired (each formant a sine wrapped in an excitation envelope whose decay sets its bandwidth); overlapping them at the fundamental rate reconstructs a true, convincingly-sung vocal spectrum with real Latin-vowel formants (a e i o u). It runs sample-accurately in an `AudioWorklet`.
+- **Persistent voice** — each monk is a persistent library voice with its own detune, breath and vibrato; only the pitch and vowel change from note to note, exactly as in real singing. Vowels morph continuously as the text unfolds.
+- **Ensemble** — a *schola* of detuned, jittered voices, a soft limiter to hold the full choir, plus a large stone-**abbey convolution reverb** (~5 s tail with early reflections).
 
 ## Where it sits — the lineage of early Western music
 
@@ -37,7 +36,7 @@ A parallel, secular, vernacular branch runs alongside it: **Troubadour** song �
 
 | App | Style | Synthesis technique |
 |---|---|---|
-| **Synth Gregorian** (this) | Plainsong | Source–filter formant vocal synthesis |
+| **Synth Gregorian** (this) | Plainsong | FOF vocal synthesis (shared `vocal-voices.js` library) |
 | [Synth Organum](https://github.com/BrendanJamesLynskey/Synth_Organum) | Notre-Dame polyphony | FOF vocal synthesis in Pythagorean just intonation |
 | [Synth Ars Nova](https://github.com/BrendanJamesLynskey/Synth_ArsNova) | 14th-c. isorhythm | Formant vocal synthesis + isorhythmic talea/color |
 | [Synth Troubadour](https://github.com/BrendanJamesLynskey/Synth_Troubadour) | Secular monophony | Formant vocal melody over a subtractive drone |
@@ -60,7 +59,8 @@ Open <http://localhost:8080> and press **Begin Chant**. Any static file server w
 | `index.html` | Landing page — detects device, links to desktop or mobile |
 | `desktop.html` | Desktop web app |
 | `style.css` | Manuscript-themed styles (parchment, ink, gold) |
-| `gregorian-engine.js` | Source–filter vocal synthesis engine (Web Audio API) |
+| `vocal-voices.js` | Shared library of interchangeable vocal-synthesis engines (FOF, formant, additive, vocal-tract) |
+| `gregorian-engine.js` | Plainsong engine driving `vocal-voices.js` (Web Audio API) |
 | `app.js` | UI controller, stave visualizer, candle motes |
 | `gregorian_mobile.html` | Self-contained mobile version (single file) |
 

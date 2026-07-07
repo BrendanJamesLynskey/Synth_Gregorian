@@ -1,16 +1,14 @@
 /**
- * Gregorian Chant Synthesis Engine — Source–Filter Vocal Synthesis
+ * Gregorian Chant Synthesis Engine — FOF Vocal Synthesis
  *
- * Rather than pure sine tones, this engine models the human singing voice
- * with the classic source–filter (formant) technique:
- *
- *   - SOURCE   : a glottal pulse — a custom PeriodicWave whose harmonics roll
- *                off ~12 dB/octave, like the flow through vibrating vocal folds.
- *   - FILTER   : a bank of parallel resonant band-pass "formants" that shape the
- *                source into recognisable Latin vowels (a e i o u). Each monk has
- *                his own persistent vocal tract; only the pitch (fold frequency)
- *                changes from note to note, exactly as in real singing.
- *   - BREATH   : filtered noise adds air and consonantal texture.
+ * Rather than pure sine tones, this engine sings each monk with the shared
+ * `vocal-voices.js` vocal-synthesis library (default technique FOF — Fonction
+ * d'Onde Formantique, the IRCAM CHANT method): once per glottal period a burst
+ * of overlapping damped formant grains reconstructs a true, convincingly-sung
+ * vocal spectrum with real vowel formants. Each monk is a persistent library
+ * voice with its own detune, breath and vibrato; only the pitch and vowel change
+ * from note to note, exactly as in real singing, and the vowel morphs
+ * continuously as the Latin text unfolds.
  *
  * On top of that: the 8 medieval church modes, free neumatic rhythm with
  * recitation on the tenor and agogic cadences, melismatic neumes, a schola of
@@ -33,12 +31,12 @@ class GregorianEngine {
         this.activeNotes = [];
 
         this.masterGain = null;
+        this.limiter = null;
         this.voiceBus = null;
         this.reverbGain = null;
         this.dryGain = null;
         this.convolver = null;
         this.analyser = null;
-        this.glottalWave = null;
 
         // A2 — a low, grounded reciting range for a men's schola
         this.basePitch = 110;
@@ -78,7 +76,13 @@ class GregorianEngine {
 
         this.masterGain = this.ctx.createGain();
         this.masterGain.gain.value = 0.85;
-        this.masterGain.connect(this.ctx.destination);
+
+        // Soft limiter before the destination keeps a full schola from clipping.
+        this.limiter = this.ctx.createDynamicsCompressor();
+        this.limiter.threshold.value = -8; this.limiter.knee.value = 8;
+        this.limiter.ratio.value = 6; this.limiter.attack.value = 0.004; this.limiter.release.value = 0.25;
+        this.masterGain.connect(this.limiter);
+        this.limiter.connect(this.ctx.destination);
 
         this.analyser = this.ctx.createAnalyser();
         this.analyser.fftSize = 2048;
@@ -102,21 +106,8 @@ class GregorianEngine {
         this.convolver.connect(this.reverbGain);
         this.reverbGain.connect(this.masterGain);
 
-        this.buildGlottalWave();
-    }
-
-    /**
-     * The glottal source: harmonics rolling off ~ -12 dB/oct. A little richer
-     * than a sawtooth so the higher formants have partials to resonate.
-     */
-    buildGlottalWave() {
-        const n = 48;
-        const real = new Float32Array(n);
-        const imag = new Float32Array(n);
-        for (let k = 1; k < n; k++) {
-            imag[k] = 1 / Math.pow(k, 1.2);   // spectral tilt
-        }
-        this.glottalWave = this.ctx.createPeriodicWave(real, imag, { disableNormalization: false });
+        // Load the vocal-synthesis worklets (FOF, vocal tract) once.
+        await VocalVoices.init(this.ctx);
     }
 
     /** Large stone abbey — ~5 s tail with sparse early reflections. */
@@ -145,15 +136,12 @@ class GregorianEngine {
     centsToFreq(cents) { return this.basePitch * Math.pow(2, cents / 1200); }
 
     /**
-     * Build one monk's persistent vocal tract:
-     *   sourceGain → [4 parallel band-pass formants] → tractGain → voiceBus
-     * Note oscillators (the folds) connect transiently into sourceGain.
+     * Build one monk as a persistent FOF library voice:
+     *   voice.output → noteGain (per-note envelope) → tractGain (fade-in) → voiceBus
+     * Only the pitch and vowel change from note to note; the singer persists.
      */
     createVoiceTract(index, total) {
         const now = this.ctx.currentTime;
-
-        const sourceGain = this.ctx.createGain();
-        sourceGain.gain.value = 1.0;
 
         const tractGain = this.ctx.createGain();
         // Additive: more monks = fuller sound, gently tapered.
@@ -164,41 +152,24 @@ class GregorianEngine {
         tractGain.gain.linearRampToValueAtTime(vol, now + 1.5 + index * 0.6);
         tractGain.connect(this.voiceBus);
 
-        // Four parallel formant resonators.
-        const formantGainsRel = [1.0, 0.5, 0.28, 0.16];
-        const bandwidths = [80, 90, 120, 150];
-        const formants = [];
-        const v0 = this.vowels[this.vowelSequence[0]];
-        for (let f = 0; f < 4; f++) {
-            const bp = this.ctx.createBiquadFilter();
-            bp.type = 'bandpass';
-            bp.frequency.value = v0[f];
-            bp.Q.value = v0[f] / bandwidths[f];
-            const fg = this.ctx.createGain();
-            fg.gain.value = formantGainsRel[f];
-            sourceGain.connect(bp);
-            bp.connect(fg);
-            fg.connect(tractGain);
-            formants.push({ bp, fg, bandwidth: bandwidths[f] });
-        }
-
-        // Breath — filtered noise for air, gated softly with singing.
-        const noiseBuf = this.ctx.createBuffer(1, this.ctx.sampleRate * 2, this.ctx.sampleRate);
-        const nd = noiseBuf.getChannelData(0);
-        for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = noiseBuf; noise.loop = true;
-        const noiseBp = this.ctx.createBiquadFilter();
-        noiseBp.type = 'bandpass'; noiseBp.frequency.value = 2600; noiseBp.Q.value = 0.7;
-        const noiseGain = this.ctx.createGain();
-        noiseGain.gain.value = 0;
-        noise.connect(noiseBp); noiseBp.connect(noiseGain); noiseGain.connect(sourceGain);
-        noise.start(now);
+        // Per-note amplitude envelope, shared by this monk across notes.
+        const noteGain = this.ctx.createGain();
+        noteGain.gain.value = 0.0001;
+        noteGain.connect(tractGain);
 
         // Per-monk pitch drift so a unison schola shimmers.
         const detuneCents = (index - (total - 1) / 2) * 9 + (Math.random() - 0.5) * 5;
 
-        return { sourceGain, tractGain, formants, noise, noiseGain, detuneCents, vowel: this.vowelSequence[0] };
+        const voice = VocalVoices.create(this.ctx, {
+            technique: 'fof',
+            vowel: this.vowelSequence[0],
+            detuneCents,
+            breath: 0.03 + this.breath * 0.06,
+            vibDepth: 0.006
+        });
+        voice.output.connect(noteGain);
+
+        return { voice, noteGain, tractGain, detuneCents, vowel: this.vowelSequence[0] };
     }
 
     setupVoices() {
@@ -215,23 +186,17 @@ class GregorianEngine {
                 voice.tractGain.gain.cancelScheduledValues(now);
                 voice.tractGain.gain.setValueAtTime(voice.tractGain.gain.value, now);
                 voice.tractGain.gain.linearRampToValueAtTime(0, now + 2);
-                setTimeout(() => { try { voice.noise.stop(); } catch (e) {} }, 2500);
+                const v = voice.voice;
+                setTimeout(() => { try { v.dispose(); } catch (e) {} }, 2500);
             } catch (e) {}
         }
         this.voices = [];
     }
 
-    /** Ramp a monk's formant bank toward a new vowel (vocal-tract transition). */
+    /** Morph a monk's library voice toward a new sung vowel. */
     setVowel(voice, vowel) {
-        const target = this.vowels[vowel];
-        if (!target) return;
-        const now = this.ctx.currentTime;
-        voice.formants.forEach((fm, f) => {
-            fm.bp.frequency.cancelScheduledValues(now);
-            fm.bp.frequency.setValueAtTime(fm.bp.frequency.value, now);
-            fm.bp.frequency.linearRampToValueAtTime(target[f], now + 0.12);
-            fm.bp.Q.setValueAtTime(target[f] / fm.bandwidth, now + 0.12);
-        });
+        if (!this.vowels[vowel]) return;
+        voice.voice.setVowel(vowel, this.ctx.currentTime);
         voice.vowel = vowel;
     }
 
@@ -324,59 +289,30 @@ class GregorianEngine {
 
     /** One sung note across every monk in the schola. */
     playNote(freq, duration, vowel, slideFrom, delay) {
+        if (!isFinite(freq) || freq <= 0) return;
         const t0 = this.ctx.currentTime + (delay || 0);
         for (const voice of this.voices) {
             this.setVowel(voice, vowel);
 
-            const osc = this.ctx.createOscillator();
-            osc.setPeriodicWave(this.glottalWave);
-            const jitter = (Math.random() - 0.5) * 6;               // pitch jitter (shimmer of a real voice)
-            osc.detune.value = voice.detuneCents + jitter;
-
-            if (slideFrom) {
-                osc.frequency.setValueAtTime(slideFrom, t0);
-                osc.frequency.exponentialRampToValueAtTime(freq, t0 + Math.min(0.14, duration * 0.4));
+            // Steer the library voice's pitch (glide legato between neighbours).
+            const glide = (slideFrom && isFinite(slideFrom)) ? Math.min(0.14, duration * 0.4) : 0;
+            if (glide > 0) {
+                voice.voice.setFrequency(slideFrom, t0, 0);
+                voice.voice.setFrequency(freq, t0, glide);
             } else {
-                osc.frequency.value = freq;
+                voice.voice.setFrequency(freq, t0, 0);
             }
+            voice.voice.setLevel(1, t0);
 
-            const gain = this.ctx.createGain();
+            // Re-shape this monk's per-note amplitude envelope.
+            const g = voice.noteGain.gain;
             const attack = Math.min(0.18, duration * 0.35);
             const release = Math.max(0.25, duration * 0.6);
-            gain.gain.setValueAtTime(0, t0);
-            gain.gain.linearRampToValueAtTime(1.0, t0 + attack);
-            gain.gain.setValueAtTime(0.9, t0 + Math.max(attack, duration * 0.7));
-            gain.gain.exponentialRampToValueAtTime(0.001, t0 + duration + release);
-
-            osc.connect(gain);
-            gain.connect(voice.sourceGain);
-
-            // Vibrato blooms on longer, held notes only.
-            if (duration > 0.7) {
-                const vib = this.ctx.createOscillator();
-                vib.type = 'sine';
-                vib.frequency.value = 4.8 + Math.random() * 1.2;
-                const vibDepth = this.ctx.createGain();
-                vibDepth.gain.value = freq * 0.006;
-                vib.connect(vibDepth); vibDepth.connect(osc.frequency);
-                vib.start(t0 + attack); vib.stop(t0 + duration + release);
-            }
-
-            // Breath swells with the note.
-            voice.noiseGain.gain.cancelScheduledValues(t0);
-            voice.noiseGain.gain.setValueAtTime(voice.noiseGain.gain.value, t0);
-            voice.noiseGain.gain.linearRampToValueAtTime(0.06 * this.breath, t0 + attack);
-            voice.noiseGain.gain.linearRampToValueAtTime(0.01 * this.breath, t0 + duration + release);
-
-            osc.start(t0);
-            osc.stop(t0 + duration + release + 0.1);
-
-            const node = { osc, gain };
-            this.activeNotes.push(node);
-            setTimeout(() => {
-                const idx = this.activeNotes.indexOf(node);
-                if (idx > -1) this.activeNotes.splice(idx, 1);
-            }, (duration + release + 0.2) * 1000);
+            g.cancelScheduledValues(t0);
+            g.setValueAtTime(Math.max(0.0001, g.value), t0);
+            g.linearRampToValueAtTime(1.0, t0 + attack);
+            g.setValueAtTime(0.9, t0 + Math.max(attack, duration * 0.7));
+            g.exponentialRampToValueAtTime(0.001, t0 + duration + release);
         }
     }
 
