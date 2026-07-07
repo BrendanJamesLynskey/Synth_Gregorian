@@ -38,10 +38,10 @@ A parallel, secular, vernacular branch runs alongside it: **Troubadour** song â†
 | App | Style | Synthesis technique |
 |---|---|---|
 | **Synth Gregorian** (this) | Plainsong | Sourceâ€“filter formant vocal synthesis |
-| [Synth Organum](https://github.com/BrendanJamesLynskey/Synth_Organum) | Notre-Dame polyphony | Additive synthesis in Pythagorean just intonation |
-| [Synth Ars Nova](https://github.com/BrendanJamesLynskey/Synth_ArsNova) | 14th-c. isorhythm | FM synthesis |
-| [Synth Troubadour](https://github.com/BrendanJamesLynskey/Synth_Troubadour) | Secular monophony | Subtractive synthesis |
-| [Synth Estampie](https://github.com/BrendanJamesLynskey/Synth_Estampie) | Medieval dance | Physical modelling |
+| [Synth Organum](https://github.com/BrendanJamesLynskey/Synth_Organum) | Notre-Dame polyphony | Formant vocal polyphony in Pythagorean just intonation |
+| [Synth Ars Nova](https://github.com/BrendanJamesLynskey/Synth_ArsNova) | 14th-c. isorhythm | Formant vocal synthesis + isorhythmic talea/color |
+| [Synth Troubadour](https://github.com/BrendanJamesLynskey/Synth_Troubadour) | Secular monophony | Formant vocal melody over a subtractive drone |
+| [Synth Estampie](https://github.com/BrendanJamesLynskey/Synth_Estampie) | Medieval dance | Physical modelling (instrumental dance) |
 
 ## Quick start
 
