@@ -3,6 +3,7 @@
  */
 
 const engine = new GregorianEngine();
+if (typeof window !== "undefined") window.engine = engine;
 let animationId = null;
 let isChanting = false;
 

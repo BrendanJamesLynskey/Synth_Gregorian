@@ -1,6 +1,8 @@
 # Synth Gregorian — Plainsong Synthesizer
 
-A web-based synthesizer that sings **Gregorian chant** in real time in the browser. No samples, no external dependencies — the singing voice itself is synthesized with the shared **FOF vocal-synthesis** library ([`vocal-voices.js`](vocal-voices.js), the IRCAM *CHANT* method) using only the Web Audio API.
+A web-based synthesizer that sings **Gregorian chant** in real time in the browser. The singing voice is now **real recorded singing**: the shared [`vocal-voices.js`](vocal-voices.js) library plays actual sung vowels from the [**VocalSet**](https://zenodo.org/records/1193957) corpus (CC BY 4.0), looped seamlessly and mapped across pitch with **formant-preserving pitch-shifting** (TD-PSOLA) so the vocal-tract resonances stay put as the note moves — no "chipmunk". (The library's earlier pure-synthesis engines, including IRCAM *CHANT*/FOF, remain available.)
+
+> **Credit:** sampled voices derived from [**VocalSet**](https://zenodo.org/records/1193957) (Wilkins, Seetharaman, Wahl & Pardo, ISMIR 2018), CC BY 4.0.
 
 **[Launch the app](https://brendanjameslynskey.github.io/Synth_Gregorian/)** — auto-detects your device and recommends desktop or mobile.
 

@@ -39,7 +39,7 @@ class GregorianEngine {
         this.analyser = null;
 
         // A2 — a low, grounded reciting range for a men's schola
-        this.basePitch = 110;
+        this.basePitch = 130.81;   // C3 — the sampled male voice sits cleanest from C3 up (was A2/110)
 
         // === The 8 medieval church modes ===
         // intervals: cents from the finalis; tenor: reciting-tone scale degree.
@@ -161,7 +161,8 @@ class GregorianEngine {
         const detuneCents = (index - (total - 1) / 2) * 9 + (Math.random() - 0.5) * 5;
 
         const voice = VocalVoices.create(this.ctx, {
-            technique: 'fof',
+            technique: 'sampler',           // real recorded voices (was 'fof')
+            voice: 'male', ensemble: 1,     // the schola of monks supplies the width
             vowel: this.vowelSequence[0],
             detuneCents,
             breath: 0.03 + this.breath * 0.06,
