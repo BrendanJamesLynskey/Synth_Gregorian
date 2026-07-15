@@ -39,7 +39,7 @@ class GregorianEngine {
         this.analyser = null;
 
         // A2 — a low, grounded reciting range for a men's schola
-        this.basePitch = 130.81;   // C3 — the sampled male voice sits cleanest from C3 up (was A2/110)
+        this.basePitch = 110;   // A2 — deep chant tessitura; the sampled bank now reaches down to G2
 
         // === The 8 medieval church modes ===
         // intervals: cents from the finalis; tenor: reciting-tone scale degree.
