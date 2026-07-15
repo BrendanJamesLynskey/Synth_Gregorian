@@ -1000,9 +1000,11 @@ main { padding-left: 1rem; padding-right: 1rem; }
  * from note to note, exactly as in real singing, and the vowel morphs
  * continuously as the Latin text unfolds.
  *
- * On top of that: the 8 medieval church modes, free neumatic rhythm with
- * recitation on the tenor and agogic cadences, melismatic neumes, a schola of
- * detuned/jittered voices, and a large stone-abbey convolution reverb.
+ * The schola now sings REAL chant, encoded note-for-note from the repertoire:
+ * "Veni Creator Spiritus" (the Vesper hymn, Mode 8 — final G, reciting tone C)
+ * by default, sung strophically in free, text-driven rhythm with neumes slurred
+ * legato on one vowel, agogic phrase-final lengthening, breaths between phrases,
+ * a schola of detuned/jittered voices, and a large stone-abbey convolution reverb.
  */
 
 class GregorianEngine {
@@ -1032,7 +1034,8 @@ class GregorianEngine {
         this.basePitch = 110;   // A2 — deep chant tessitura; the sampled bank now reaches down to G2
 
         // === The 8 medieval church modes ===
-        // intervals: cents from the finalis; tenor: reciting-tone scale degree.
+        // Retained for UI compatibility (mode buttons / labels). The melody is
+        // no longer generated from these tables — it is encoded chant (below).
         this.modes = {
             1: { name: "Dorian",        intervals: [0,200,300,500,700,900,1000,1200], finalis: 0, tenor: 4, up: 5 },
             2: { name: "Hypodorian",    intervals: [0,200,300,500,700,900,1000,1200], finalis: 0, tenor: 2, up: 4 },
@@ -1058,6 +1061,83 @@ class GregorianEngine {
         this.vowelPos = 0;
 
         this.phrasePos = 0;
+
+        // === Repertoire: real chant, encoded note-for-note ===
+        // Each syllable: { syl: Latin text, v: sung vowel, n: [note names] }.
+        // A multi-note `n` array is a neume — its notes are slurred legato on
+        // the one vowel, with a short portamento between neighbours.
+        this.chants = {
+            // "Veni Creator Spiritus" — Vesper hymn for Pentecost, Mode 8
+            // (Hypomixolydian): final G, reciting tone C. Syllabic, strophic.
+            veni: {
+                title: 'Veni Creator Spiritus',
+                mode: 8,
+                phrases: [
+                    [ { syl: 'Ve',   v: 'e', n: ['G3'] },
+                      { syl: 'ni',   v: 'i', n: ['A3'] },
+                      { syl: 'Cre',  v: 'e', n: ['G3','F3'] },
+                      { syl: 'a',    v: 'a', n: ['G3'] },
+                      { syl: 'tor',  v: 'o', n: ['A3','G3'] },
+                      { syl: 'Spi',  v: 'i', n: ['C4'] },
+                      { syl: 'ri',   v: 'i', n: ['D4'] },
+                      { syl: 'tus',  v: 'u', n: ['C4'] } ],
+                    [ { syl: 'Men',  v: 'e', n: ['C4'] },
+                      { syl: 'tes',  v: 'e', n: ['G3'] },
+                      { syl: 'tu',   v: 'u', n: ['A3'] },
+                      { syl: 'o',    v: 'o', n: ['C4'] },
+                      { syl: 'rum',  v: 'u', n: ['D4','C4'] },
+                      { syl: 'vi',   v: 'i', n: ['D4'] },
+                      { syl: 'si',   v: 'i', n: ['E4'] },
+                      { syl: 'ta',   v: 'a', n: ['D4'] } ],
+                    [ { syl: 'Im',   v: 'i', n: ['C4'] },
+                      { syl: 'ple',  v: 'e', n: ['D4','E4'] },
+                      { syl: 'su',   v: 'u', n: ['C4','B3'] },
+                      { syl: 'per',  v: 'e', n: ['A3','G3'] },
+                      { syl: 'na',   v: 'a', n: ['C4','D4'] },
+                      { syl: 'gra',  v: 'a', n: ['G3'] },
+                      { syl: 'ti',   v: 'i', n: ['A3'] },
+                      { syl: 'a',    v: 'a', n: ['C4'] } ],
+                    [ { syl: 'Quae', v: 'e', n: ['B3','C4'] },
+                      { syl: 'tu',   v: 'u', n: ['A3'] },
+                      { syl: 'cre',  v: 'e', n: ['G3','F3'] },
+                      { syl: 'a',    v: 'a', n: ['A3'] },
+                      { syl: 'sti',  v: 'i', n: ['A3','B3','A3'] },
+                      { syl: 'pec',  v: 'e', n: ['G3'] },
+                      { syl: 'to',   v: 'o', n: ['F3'] },
+                      { syl: 'ra',   v: 'a', n: ['G3'] } ]
+                ]
+            },
+            // "Viderunt omnes" — Christmas gradual respond, Mode 5: final F,
+            // reciting tone C. A simplified, near-syllabic adaptation of the
+            // respond text (the true gradual is far more melismatic); it keeps
+            // the mode-5 F–A–C skeleton and cadences on the F final.
+            viderunt: {
+                title: 'Viderunt omnes',
+                mode: 5,
+                phrases: [
+                    [ { syl: 'Vi',   v: 'i', n: ['F3','G3','A3'] },
+                      { syl: 'de',   v: 'e', n: ['A3'] },
+                      { syl: 'runt', v: 'u', n: ['C4'] },
+                      { syl: 'om',   v: 'o', n: ['C4','D4','C4'] },
+                      { syl: 'nes',  v: 'e', n: ['A3','C4'] } ],
+                    [ { syl: 'fi',   v: 'i', n: ['C4'] },
+                      { syl: 'nes',  v: 'e', n: ['A3'] },
+                      { syl: 'ter',  v: 'e', n: ['G3','A3','G3'] },
+                      { syl: 'rae',  v: 'e', n: ['F3'] } ],
+                    [ { syl: 'sa',   v: 'a', n: ['A3'] },
+                      { syl: 'lu',   v: 'u', n: ['C4'] },
+                      { syl: 'ta',   v: 'a', n: ['C4','D4'] },
+                      { syl: 're',   v: 'e', n: ['C4'] } ],
+                    [ { syl: 'De',   v: 'e', n: ['A3','C4','A3'] },
+                      { syl: 'i',    v: 'i', n: ['G3'] },
+                      { syl: 'no',   v: 'o', n: ['F3','G3'] },
+                      { syl: 'stri', v: 'i', n: ['F3'] } ]
+                ]
+            }
+        };
+        this.currentChant = 'veni';     // the reliable default
+        this.phraseIndex = 0;           // which phrase of the chant is being sung
+        this.tempoDrift = 0;            // smooth agogic random walk, ±8%
     }
 
     async init() {
@@ -1191,11 +1271,13 @@ class GregorianEngine {
         voice.vowel = vowel;
     }
 
-    // === Melody generation: intonation → recitation → cadence ===
+    // === Melody: the encoded chant, sung phrase by phrase ===
 
     start() {
         this.isPlaying = true;
         this.phrasePos = 0;
+        this.phraseIndex = 0;
+        this.tempoDrift = 0;
         this.buildPhrase();
         this.scheduleSyllable();
     }
@@ -1216,64 +1298,72 @@ class GregorianEngine {
         this.teardownVoices();
     }
 
+    /** Note name ("G3", "Bb3", "C#4") → frequency, equal temperament, A4 = 440. */
+    noteToFreq(name) {
+        const steps = { C: -9, D: -7, E: -5, F: -4, G: -2, A: 0, B: 2 };
+        const m = /^([A-G])([#b]?)(\d)$/.exec(name);
+        if (!m) return 0;
+        let s = steps[m[1]];
+        if (m[2] === '#') s += 1;
+        if (m[2] === 'b') s -= 1;
+        return 440 * Math.pow(2, (s + (parseInt(m[3], 10) - 4) * 12) / 12);
+    }
+
     /**
-     * Compose a plausible chant phrase for the current mode: rise from the
-     * finalis (intonation), recite around the tenor with small neumes, then
-     * a stepwise cadence back to the finalis. Values are scale degrees.
+     * Load the current phrase of the encoded chant into `this.phrase`.
+     * The chant is strophic: after the final phrase it wraps back to the
+     * first, as a schola would sing successive stanzas of the hymn.
      */
     buildPhrase() {
-        const m = this.modes[this.currentMode];
-        const tenor = m.tenor;
-        const phrase = [];
-        // Intonation: rise to the reciting tone.
-        for (let d = 0; d <= tenor; d++) phrase.push({ deg: d, len: d === tenor ? 1.4 : 0.9 });
-        // Recitation with ornamental neumes around the tenor.
-        const recite = 4 + Math.floor(Math.random() * 4);
-        for (let i = 0; i < recite; i++) {
-            const r = Math.random();
-            if (r < 0.45) phrase.push({ deg: tenor, len: 0.9 });
-            else if (r < 0.7) phrase.push({ deg: tenor, len: 0.9, neume: [tenor, tenor + 1, tenor] });   // torculus
-            else if (r < 0.85) phrase.push({ deg: tenor - 1, len: 0.9, neume: [tenor - 1, tenor] });      // podatus
-            else phrase.push({ deg: Math.min(m.up, tenor + 1), len: 1.0, neume: [tenor + 1, tenor] });    // clivis
-        }
-        // Cadence: stepwise descent to the finalis, lengthened.
-        for (let d = tenor - 1; d >= 0; d--) phrase.push({ deg: d, len: d === 0 ? 2.4 : 1.0 });
-        this.phrase = phrase;
+        const chant = this.chants[this.currentChant] || this.chants.veni;
+        this.phraseIndex = this.phraseIndex % chant.phrases.length;
+        this.phrase = chant.phrases[this.phraseIndex];
         this.phrasePos = 0;
-        // Advance the "syllable" vowel per phrase segment.
-        this.vowelPos = (this.vowelPos + 1) % this.vowelSequence.length;
     }
 
     scheduleSyllable() {
         if (!this.isPlaying) return;
-        const m = this.modes[this.currentMode];
+        if (!this.phrase || this.phrasePos >= this.phrase.length) this.buildPhrase();
+        const chant = this.chants[this.currentChant] || this.chants.veni;
         const item = this.phrase[this.phrasePos];
-        const beat = 60 / this.tempo;
-        const vowel = this.vowelSequence[(this.vowelPos + this.phrasePos) % this.vowelSequence.length];
 
-        const degToFreq = (deg) => {
-            const idx = ((deg % 8) + 8) % 8;
-            const oct = Math.floor(deg / 8);
-            return this.centsToFreq(m.intervals[idx]) * Math.pow(2, oct);
-        };
+        // Free, text-driven rhythm: ~0.47 s per syllable at the default tempo
+        // (52), wandering on a smooth ±8% agogic random walk — never metrical,
+        // no downbeats, just the pacing of spoken Latin.
+        this.tempoDrift += (Math.random() - 0.5) * 0.045;
+        this.tempoDrift = Math.max(-0.08, Math.min(0.08, this.tempoDrift));
+        const base = Math.max(0.32, Math.min(0.85, 0.47 * (52 / this.tempo)))
+                   * (1 + this.tempoDrift);
 
-        // A syllable may carry a melisma (several slurred notes on one vowel).
-        const notes = item.neume
-            ? item.neume.map(d => degToFreq(d))
-            : [degToFreq(item.deg)];
-        const syllableDur = beat * item.len;
+        const isLast = this.phrasePos === this.phrase.length - 1;
+        const notes = item.n.map(nm => this.noteToFreq(nm));
+
+        // A neume gets a little more time than a single punctum, and its
+        // duration is split evenly across its notes, all on the one vowel.
+        let syllableDur = base * (1 + 0.55 * (notes.length - 1));
+        // Agogic lengthening: the last syllable of each phrase doubles.
+        if (isLast) syllableDur *= 2;
         const noteDur = syllableDur / notes.length;
 
         notes.forEach((freq, i) => {
+            // Within a neume, slide legato from the previous note (playNote
+            // applies a short portamento when slideFrom is given).
             const prev = i > 0 ? notes[i - 1] : null;
-            this.playNote(freq, noteDur, vowel, prev, i * noteDur);
+            this.playNote(freq, noteDur, item.v, prev, i * noteDur);
         });
 
         this.phrasePos++;
         const phraseEnd = this.phrasePos >= this.phrase.length;
-        // Breath at the end of the phrase; small separation between syllables.
-        const pause = phraseEnd ? beat * 1.6 : beat * 0.08;
-        if (phraseEnd) this.buildPhrase();
+        // Breath at the end of the phrase (a touch longer after the stanza);
+        // just a consonant's worth of separation between syllables.
+        let pause = 0.05;
+        if (phraseEnd) {
+            const stanzaEnd = this.phraseIndex === chant.phrases.length - 1;
+            pause = stanzaEnd ? 0.9 + Math.random() * 0.4
+                              : 0.5 + Math.random() * 0.3;
+            this.phraseIndex = (this.phraseIndex + 1) % chant.phrases.length;
+            this.buildPhrase();
+        }
 
         this.phraseTimeout = setTimeout(() => this.scheduleSyllable(), (syllableDur + pause) * 1000);
     }
@@ -1320,7 +1410,16 @@ class GregorianEngine {
 
     setMode(mode) {
         this.currentMode = mode;
-        if (this.isPlaying) { this.buildPhrase(); }
+        // Mode buttons now select among the encoded chants: Mode 8 (VIII)
+        // sings "Veni Creator Spiritus", Mode 5 (V) "Viderunt omnes". All
+        // other modes are safe no-ops — the schola keeps singing as it was.
+        const chantByMode = { 8: 'veni', 5: 'viderunt' };
+        const chant = chantByMode[mode];
+        if (chant && chant !== this.currentChant) {
+            this.currentChant = chant;
+            this.phraseIndex = 0;
+            if (this.isPlaying) this.buildPhrase();
+        }
     }
 
     setVoices(count) {
@@ -1367,6 +1466,7 @@ class GregorianEngine {
  */
 
 const engine = new GregorianEngine();
+if (typeof window !== "undefined") window.engine = engine;
 let animationId = null;
 let isChanting = false;
 
