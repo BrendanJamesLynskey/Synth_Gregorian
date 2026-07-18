@@ -10,18 +10,37 @@
  * from note to note, exactly as in real singing, and the vowel morphs
  * continuously as the Latin text unfolds.
  *
- * The schola now sings REAL chant, encoded note-for-note from the repertoire:
- * "Veni Creator Spiritus" (the Vesper hymn, Mode 8 — final G, reciting tone C)
- * by default, sung strophically in free, text-driven rhythm with neumes slurred
- * legato on one vowel, agogic phrase-final lengthening, breaths between phrases,
- * a schola of detuned/jittered voices, and a large stone-abbey convolution reverb.
+ * The schola sings a REPERTOIRE of real chant, encoded note-for-note from the
+ * Solesmes books (Graduale Romanum / Liber Usualis, via the GregoBase GABC
+ * transcriptions), spanning the main genres:
+ *
+ *   Mode I    "Dies irae"          sequence   (syllabic;  GregoBase 1198)
+ *   Mode I    Kyrie XI "Orbis factor"  Ordinary (melismatic; GregoBase 2982)
+ *   Mode V    "Viderunt omnes"     gradual    (melismatic; GregoBase 1163 —
+ *                                   the respond Perotin set as organum;
+ *                                   LU 409 / Graduale Romanum 33)
+ *   Mode VI   "Requiem aeternam"   introit + psalm verse (neumatic; GB 7978,
+ *                                   Graduale Romanum 1974 p. 669)
+ *   Mode VIII "Veni Creator Spiritus"  hymn   (syllabic; verified note-for-
+ *                                   note against the GR 1974 GABC)
+ *
+ * plus the EIGHT OFFICE PSALM TONES (Liber Usualis pp. 112-117): a psalm verse
+ * is chanted the authentic way — intonation, recitation on the tenor, mediant
+ * cadence at the half-verse (breath), more recitation, then the termination
+ * (differentia). The mode buttons choose the repertoire: a mode with an encoded
+ * chant sings it, and pressing the same mode again cycles to that mode's psalm
+ * tone (modes with no chant go straight to psalmody on Ps. 109 "Dixit Dominus").
+ *
+ * Everything is sung in free, text-driven rhythm: neumes slurred legato on one
+ * vowel, agogic phrase-final lengthening, breaths between phrases, a schola of
+ * detuned/jittered voices, and a large stone-abbey convolution reverb.
  */
 
 class GregorianEngine {
     constructor() {
         this.ctx = null;
         this.isPlaying = false;
-        this.currentMode = 1;
+        this.currentMode = 8;           // matches the default chant (Veni Creator)
         this.numVoices = 1;
         this.tempo = 52;                // syllables per minute-ish pacing
         this.voiceVolume = 0.75;
@@ -72,6 +91,60 @@ class GregorianEngine {
 
         this.phrasePos = 0;
 
+        // === The 8 office psalm tones (Liber Usualis pp. 112-117) ===
+        // Each tone: reciting note (tenor), intonation cells, mediant-cadence
+        // cells and one canonical termination (differentia, named). A "cell"
+        // is the note group for one syllable (a 2-3 note cell is a neume).
+        // Cross-checked against the LU chart (musicasacra.com tones.pdf) and
+        // the GABC formulas in the jgabc psalm-tone tool (bbloomf.github.io).
+        this.psalmTones = {
+            1: { tenor: 'A3', differentia: 'D',
+                 intonation: [['F3'], ['G3','A3']],
+                 mediant: [['Bb3'], ['A3'], ['G3'], ['A3']],
+                 termination: [['G3'], ['F3'], ['G3','A3'], ['G3'], ['G3','F3','E3','D3']] },
+            2: { tenor: 'F3', differentia: '(unica)',
+                 intonation: [['C3'], ['D3']],
+                 mediant: [['G3'], ['F3']],
+                 termination: [['E3'], ['C3'], ['D3'], ['D3']] },
+            3: { tenor: 'C4', differentia: 'a',
+                 intonation: [['G3'], ['A3','C4']],
+                 mediant: [['D4'], ['C4'], ['B3','A3'], ['C4']],
+                 termination: [['A3'], ['C4'], ['C4'], ['B3','A3']] },
+            4: { tenor: 'A3', differentia: 'E',
+                 intonation: [['A3'], ['G3','A3']],
+                 mediant: [['G3'], ['A3'], ['B3'], ['A3']],
+                 termination: [['G3'], ['A3'], ['B3','A3'], ['G3'], ['G3','F3'], ['E3']] },
+            5: { tenor: 'C4', differentia: 'a',
+                 intonation: [['F3'], ['A3']],
+                 mediant: [['D4'], ['C4']],
+                 termination: [['D4'], ['B3'], ['C4'], ['A3'], ['A3']] },
+            6: { tenor: 'A3', differentia: 'F',
+                 intonation: [['F3'], ['G3','A3']],
+                 mediant: [['Bb3'], ['A3'], ['G3'], ['A3']],
+                 termination: [['F3'], ['G3','A3'], ['G3'], ['F3']] },
+            7: { tenor: 'D4', differentia: 'a',
+                 intonation: [['C4','B3'], ['C4','D4']],
+                 mediant: [['F4'], ['E4'], ['D4'], ['E4']],
+                 termination: [['E4'], ['D4'], ['C4'], ['C4'], ['B3','A3']] },
+            8: { tenor: 'C4', differentia: 'G',
+                 intonation: [['G3'], ['A3']],
+                 mediant: [['D4'], ['C4']],
+                 termination: [['B3'], ['C4'], ['A3'], ['G3']] }
+        };
+
+        // Psalm 109 "Dixit Dominus" vv. 1-2 + doxology, as syllables with the
+        // sung vowel. Each verse = two half-verses (a: ...mediant | b: ...term).
+        this.psalterVerses = [
+            { a: [['Di','i'],['xit','i'],['Dó','o'],['mi','i'],['nus','u'],['Dó','o'],['mi','i'],['no','o'],['me','e'],['o','o']],
+              b: [['Se','e'],['de','e'],['a','a'],['dex','e'],['tris','i'],['me','e'],['is','i']] },
+            { a: [['Do','o'],['nec','e'],['po','o'],['nam','a'],['in','i'],['i','i'],['mí','i'],['cos','o'],['tu','u'],['os','o']],
+              b: [['sca','a'],['bél','e'],['lum','u'],['pe','e'],['dum','u'],['tu','u'],['ó','o'],['rum','u']] },
+            { a: [['Gló','o'],['ri','i'],['a','a'],['Pa','a'],['tri','i'],['et','e'],['Fí','i'],['li','i'],['o','o']],
+              b: [['et','e'],['Spi','i'],['rí','i'],['tu','u'],['i','i'],['San','a'],['cto','o']] },
+            { a: [['Si','i'],['cut','u'],['e','e'],['rat','a'],['in','i'],['prin','i'],['cí','i'],['pi','i'],['o','o'],['et','e'],['nunc','u'],['et','e'],['sem','e'],['per','e']],
+              b: [['et','e'],['in','i'],['sǽ','e'],['cu','u'],['la','a'],['sæ','e'],['cu','u'],['ló','o'],['rum','u'],['A','a'],['men','e']] }
+        ];
+
         // === Repertoire: real chant, encoded note-for-note ===
         // Each syllable: { syl: Latin text, v: sung vowel, n: [note names] }.
         // A multi-note `n` array is a neume — its notes are slurred legato on
@@ -81,7 +154,7 @@ class GregorianEngine {
             // (Hypomixolydian): final G, reciting tone C. Syllabic, strophic.
             veni: {
                 title: 'Veni Creator Spiritus',
-                mode: 8,
+                mode: 8, genre: 'hymn (syllabic)',
                 phrases: [
                     [ { syl: 'Ve',   v: 'e', n: ['G3'] },
                       { syl: 'ni',   v: 'i', n: ['A3'] },
@@ -117,34 +190,216 @@ class GregorianEngine {
                       { syl: 'ra',   v: 'a', n: ['G3'] } ]
                 ]
             },
-            // "Viderunt omnes" — Christmas gradual respond, Mode 5: final F,
-            // reciting tone C. A simplified, near-syllabic adaptation of the
-            // respond text (the true gradual is far more melismatic); it keeps
-            // the mode-5 F–A–C skeleton and cadences on the F final.
+            // "Viderunt omnes" — Christmas gradual (respond), Mode 5: final F,
+            // reciting tone C. Decoded note-for-note from the GregoBase 1163
+            // GABC (Graduale Romanum 1961 p. 33 / Liber Usualis p. 409, c3
+            // clef: d=F3 e=G3 f=A3 g=B3 h=C4 i=D4 j=E4 k=F4; the "gx" flat in
+            // "omnis" makes those g's B♭3). This is the respond Pérotin set as
+            // four-voice organum — fully melismatic, the melisma on "(ter)ra"
+            // running to sixteen notes.
             viderunt: {
                 title: 'Viderunt omnes',
-                mode: 5,
+                mode: 5, genre: 'gradual (melismatic)',
                 phrases: [
-                    [ { syl: 'Vi',   v: 'i', n: ['F3','G3','A3'] },
-                      { syl: 'de',   v: 'e', n: ['A3'] },
-                      { syl: 'runt', v: 'u', n: ['C4'] },
-                      { syl: 'om',   v: 'o', n: ['C4','D4','C4'] },
-                      { syl: 'nes',  v: 'e', n: ['A3','C4'] } ],
-                    [ { syl: 'fi',   v: 'i', n: ['C4'] },
-                      { syl: 'nes',  v: 'e', n: ['A3'] },
-                      { syl: 'ter',  v: 'e', n: ['G3','A3','G3'] },
-                      { syl: 'rae',  v: 'e', n: ['F3'] } ],
+                    [ { syl: 'Vi',   v: 'i', n: ['F3'] },
+                      { syl: 'dé',   v: 'e', n: ['F3'] },
+                      { syl: 'runt', v: 'u', n: ['A3','C4'] },
+                      { syl: 'o',    v: 'o', n: ['C4','D4','C4','A3','C4','C4','C4','E4','D4','C4'] },
+                      { syl: 'mnes', v: 'e', n: ['C4'] } ],
+                    [ { syl: 'fi',   v: 'i', n: ['C4','D4'] },
+                      { syl: 'nes',  v: 'e', n: ['C4','A3'] },
+                      { syl: 'ter',  v: 'e', n: ['C4','A3','C4','C4','A3'] },
+                      { syl: 'rae',  v: 'e', n: ['A3','C4','C4','A3','C4','B3','C4','A3'] } ],
                     [ { syl: 'sa',   v: 'a', n: ['A3'] },
-                      { syl: 'lu',   v: 'u', n: ['C4'] },
-                      { syl: 'ta',   v: 'a', n: ['C4','D4'] },
-                      { syl: 're',   v: 'e', n: ['C4'] } ],
-                    [ { syl: 'De',   v: 'e', n: ['A3','C4','A3'] },
-                      { syl: 'i',    v: 'i', n: ['G3'] },
-                      { syl: 'no',   v: 'o', n: ['F3','G3'] },
-                      { syl: 'stri', v: 'i', n: ['F3'] } ]
+                      { syl: 'lu',   v: 'u', n: ['C4','B3'] },
+                      { syl: 'tá',   v: 'a', n: ['C4','B3','D4'] },
+                      { syl: 're',   v: 'e', n: ['D4','C4','B3','C4','A3'] } ],
+                    [ { syl: 'De',   v: 'e', n: ['A3','G3','A3','B3','C4','D4','C4'] },
+                      { syl: 'i',    v: 'i', n: ['C4','B3','D4','E4','F4'] },
+                      { syl: 'no',   v: 'o', n: ['D4','C4'] },
+                      { syl: 'stri', v: 'i', n: ['C4','B3','C4','A3'] } ],
+                    [ { syl: 'ju',   v: 'u', n: ['A3'] },
+                      { syl: 'bi',   v: 'i', n: ['C4','B3'] },
+                      { syl: 'lá',   v: 'a', n: ['C4'] },
+                      { syl: 'te',   v: 'e', n: ['C4','C4','C4'] },
+                      { syl: 'De',   v: 'e', n: ['A3','C4','G3','G3','F3'] },
+                      { syl: 'o',    v: 'o', n: ['F3','G3','A3','C4','A3','F3'] } ],
+                    [ { syl: 'o',    v: 'o', n: ['F3','A3','C4','D4','E4','C4'] },
+                      { syl: 'mnis', v: 'i', n: ['C4','A3','Bb3','C4','Bb3','G3','A3','Bb3','A3','G3'] },
+                      { syl: 'ter',  v: 'e', n: ['F3','G3','F3'] },
+                      { syl: 'ra',   v: 'a', n: ['F3','A3','C4','F3','A3','C4','C4','B3','G3','F3','A3','G3','A3','G3','G3','F3'] } ]
+                ]
+            },
+            // "Dies irae" — sequence from the Requiem Mass, Mode 1: final D,
+            // reciting tone A. Decoded from GregoBase 1198 (Graduale Romanum
+            // 1961 p. 96* / LU p. 1810, c4 clef: a=A2 c=C3 d=D3 e=E3 f=F3
+            // g=G3 h=A3 i=B3 j=C4). Strophic and syllabic — stanza I ("Dies
+            // irae...") and stanza III ("Tuba mirum...", the higher second
+            // melodic strain) are encoded, six phrases in all.
+            dies: {
+                title: 'Dies irae',
+                mode: 1, genre: 'sequence (syllabic)',
+                phrases: [
+                    [ { syl: 'Di',   v: 'i', n: ['F3'] },
+                      { syl: 'es',   v: 'e', n: ['E3'] },
+                      { syl: 'i',    v: 'i', n: ['F3'] },
+                      { syl: 'rae',  v: 'e', n: ['D3'] },
+                      { syl: 'di',   v: 'i', n: ['E3'] },
+                      { syl: 'es',   v: 'e', n: ['C3'] },
+                      { syl: 'il',   v: 'i', n: ['D3'] },
+                      { syl: 'la',   v: 'a', n: ['D3'] } ],
+                    [ { syl: 'Sol',  v: 'o', n: ['F3'] },
+                      { syl: 'vet',  v: 'e', n: ['F3','G3'] },
+                      { syl: 'sae',  v: 'e', n: ['F3','E3'] },
+                      { syl: 'clum', v: 'u', n: ['D3','C3'] },
+                      { syl: 'in',   v: 'i', n: ['E3'] },
+                      { syl: 'fa',   v: 'a', n: ['F3'] },
+                      { syl: 'víl',  v: 'i', n: ['E3'] },
+                      { syl: 'la',   v: 'a', n: ['D3'] } ],
+                    [ { syl: 'Te',   v: 'e', n: ['A2'] },
+                      { syl: 'ste',  v: 'e', n: ['C3','D3'] },
+                      { syl: 'Da',   v: 'a', n: ['D3'] },
+                      { syl: 'vid',  v: 'i', n: ['D3','C3'] },
+                      { syl: 'cum',  v: 'u', n: ['E3'] },
+                      { syl: 'Si',   v: 'i', n: ['F3'] },
+                      { syl: 'býl',  v: 'i', n: ['E3'] },
+                      { syl: 'la',   v: 'a', n: ['D3'] } ],
+                    [ { syl: 'Tu',   v: 'u', n: ['A3'] },
+                      { syl: 'ba',   v: 'a', n: ['C4'] },
+                      { syl: 'mi',   v: 'i', n: ['C4'] },
+                      { syl: 'rum',  v: 'u', n: ['B3','G3','A3'] },
+                      { syl: 'spar', v: 'a', n: ['A3','G3','F3'] },
+                      { syl: 'gens', v: 'e', n: ['G3'] },
+                      { syl: 'so',   v: 'o', n: ['A3'] },
+                      { syl: 'num',  v: 'u', n: ['A3','D3'] } ],
+                    [ { syl: 'Per',  v: 'e', n: ['F3'] },
+                      { syl: 'se',   v: 'e', n: ['E3'] },
+                      { syl: 'púl',  v: 'u', n: ['F3'] },
+                      { syl: 'cra',  v: 'a', n: ['D3'] },
+                      { syl: 're',   v: 'e', n: ['E3'] },
+                      { syl: 'gi',   v: 'i', n: ['C3'] },
+                      { syl: 'ó',    v: 'o', n: ['D3'] },
+                      { syl: 'num',  v: 'u', n: ['D3'] } ],
+                    [ { syl: 'Co',   v: 'o', n: ['F3'] },
+                      { syl: 'get',  v: 'e', n: ['G3','A3'] },
+                      { syl: 'o',    v: 'o', n: ['A3','G3','F3'] },
+                      { syl: 'mnes', v: 'e', n: ['E3','D3','C3'] },
+                      { syl: 'an',   v: 'a', n: ['E3'] },
+                      { syl: 'te',   v: 'e', n: ['F3'] },
+                      { syl: 'thro', v: 'o', n: ['E3'] },
+                      { syl: 'num',  v: 'u', n: ['D3'] } ]
+                ]
+            },
+            // Kyrie XI "Orbis factor" — Mass Ordinary, Mode 1: final D.
+            // Decoded from GregoBase 2982 (Graduale Romanum 1961 p. 38* / LU
+            // p. 46, c4 clef; the "ix" flats make the i's B♭3). Melismatic:
+            // each invocation carries the great nine-note "e(léison)" melisma
+            // F G A B♭ A G F E D. Kyrie — Christe — final expanded Kyrie.
+            kyrie: {
+                title: 'Kyrie XI (Orbis factor)',
+                mode: 1, genre: 'Kyrie (melismatic)',
+                phrases: [
+                    [ { syl: 'Ky',  v: 'i', n: ['A3','Bb3'] },
+                      { syl: 'ri',  v: 'i', n: ['A3','G3'] },
+                      { syl: 'e',   v: 'e', n: ['A3','D3'] },
+                      { syl: 'e',   v: 'e', n: ['F3','G3','A3','Bb3','A3','G3','F3','E3','D3'] },
+                      { syl: 'lé',  v: 'e', n: ['C3'] },
+                      { syl: 'i',   v: 'i', n: ['D3'] },
+                      { syl: 'son', v: 'o', n: ['D3'] } ],
+                    [ { syl: 'Chri', v: 'i', n: ['A3','G3'] },
+                      { syl: 'ste',  v: 'e', n: ['D4','C4','D4','C4','A3','G3','A3'] },
+                      { syl: 'e',    v: 'e', n: ['F3','G3','A3','Bb3','A3','G3','F3','E3','D3'] },
+                      { syl: 'lé',   v: 'e', n: ['C3'] },
+                      { syl: 'i',    v: 'i', n: ['D3'] },
+                      { syl: 'son',  v: 'o', n: ['D3'] } ],
+                    [ { syl: 'Ký',  v: 'i', n: ['D3','F3','D3'] },
+                      { syl: 'ri',  v: 'i', n: ['C3','D3'] },
+                      { syl: 'e',   v: 'e', n: ['D3','G3','F3','G3','F3','D3','C3','D3'] },
+                      { syl: 'e',   v: 'e', n: ['F3','G3','A3','Bb3','A3','G3','F3','E3','D3'] },
+                      { syl: 'lé',  v: 'e', n: ['C3'] },
+                      { syl: 'i',   v: 'i', n: ['D3'] },
+                      { syl: 'son', v: 'o', n: ['D3'] } ]
+                ]
+            },
+            // "Requiem aeternam" — introit of the Mass for the Dead, Mode 6:
+            // final F, with the mode's characteristic B♭. Decoded from
+            // GregoBase 7978 (Graduale Romanum 1974 p. 669, c4 clef).
+            // Neumatic antiphon, then the psalm verse "Te decet hymnus" sung
+            // to the Mode 6 INTROIT tone exactly as printed — so this piece
+            // demonstrates introit psalmody (antiphon + verse) while the mode
+            // buttons' psalm option demonstrates office psalmody.
+            requiem: {
+                title: 'Requiem aeternam',
+                mode: 6, genre: 'introit + psalm verse (neumatic)',
+                phrases: [
+                    [ { syl: 'Re',   v: 'e', n: ['F3','F3','G3'] },
+                      { syl: 'qui',  v: 'i', n: ['F3'] },
+                      { syl: 'em',   v: 'e', n: ['F3'] },
+                      { syl: 'ae',   v: 'e', n: ['F3','G3','A3'] },
+                      { syl: 'tér',  v: 'e', n: ['A3','G3','G3','F3','G3'] },
+                      { syl: 'nam',  v: 'a', n: ['G3','F3'] } ],
+                    [ { syl: 'do',   v: 'o', n: ['F3','G3','A3'] },
+                      { syl: 'na',   v: 'a', n: ['A3','G3'] },
+                      { syl: 'e',    v: 'e', n: ['A3'] },
+                      { syl: 'is',   v: 'i', n: ['A3','C4','A3','G3','A3','Bb3','A3','G3'] },
+                      { syl: 'Dó',   v: 'o', n: ['F3'] },
+                      { syl: 'mi',   v: 'i', n: ['F3','G3','A3','G3','F3','G3'] },
+                      { syl: 'ne',   v: 'e', n: ['G3','F3'] } ],
+                    [ { syl: 'et',   v: 'e', n: ['A3','G3'] },
+                      { syl: 'lux',  v: 'u', n: ['A3','G3','F3'] },
+                      { syl: 'per',  v: 'e', n: ['A3'] },
+                      { syl: 'pé',   v: 'e', n: ['G3','A3'] },
+                      { syl: 'tu',   v: 'u', n: ['G3','F3'] },
+                      { syl: 'a',    v: 'a', n: ['F3'] } ],
+                    [ { syl: 'lú',   v: 'u', n: ['A3','G3'] },
+                      { syl: 'ce',   v: 'e', n: ['A3'] },
+                      { syl: 'at',   v: 'a', n: ['A3','C4','A3','G3','A3','Bb3','A3','G3'] },
+                      { syl: 'e',    v: 'e', n: ['F3','G3','A3','G3','F3','G3'] },
+                      { syl: 'is',   v: 'i', n: ['G3','F3'] } ],
+                    [ { syl: 'Te',   v: 'e', n: ['F3','G3'] },
+                      { syl: 'de',   v: 'e', n: ['G3','F3'] },
+                      { syl: 'cet',  v: 'e', n: ['G3','A3'] },
+                      { syl: 'hym',  v: 'i', n: ['A3'] },
+                      { syl: 'nus',  v: 'u', n: ['G3'] },
+                      { syl: 'De',   v: 'e', n: ['Bb3'] },
+                      { syl: 'us',   v: 'u', n: ['A3'] },
+                      { syl: 'in',   v: 'i', n: ['A3'] },
+                      { syl: 'Si',   v: 'i', n: ['G3'] },
+                      { syl: 'on',   v: 'o', n: ['F3'] } ],
+                    [ { syl: 'et',   v: 'e', n: ['A3'] },
+                      { syl: 'ti',   v: 'i', n: ['A3','C4'] },
+                      { syl: 'bi',   v: 'i', n: ['G3'] },
+                      { syl: 'red',  v: 'e', n: ['F3'] },
+                      { syl: 'dé',   v: 'e', n: ['F3'] },
+                      { syl: 'tur',  v: 'u', n: ['F3'] },
+                      { syl: 'vo',   v: 'o', n: ['F3'] },
+                      { syl: 'tum',  v: 'u', n: ['G3'] },
+                      { syl: 'in',   v: 'i', n: ['F3','D3'] },
+                      { syl: 'Ie',   v: 'e', n: ['F3'] },
+                      { syl: 'rú',   v: 'u', n: ['G3'] },
+                      { syl: 'sa',   v: 'a', n: ['F3'] },
+                      { syl: 'lem',  v: 'e', n: ['F3'] } ]
                 ]
             }
         };
+
+        // === What each mode button sings ===
+        // First press: that mode's chant. Pressing the SAME mode again cycles
+        // through its programme — further chants in the mode, then the mode's
+        // office psalm tone (Ps. 109 "Dixit Dominus"). Modes with no encoded
+        // chant (2, 3, 4, 7) go straight to psalmody, which is exactly how
+        // those tenors were mostly heard in the office anyway.
+        this.modePrograms = {
+            1: ['dies', 'kyrie', 'psalm'],
+            2: ['psalm'],
+            3: ['psalm'],
+            4: ['psalm'],
+            5: ['viderunt', 'psalm'],
+            6: ['requiem', 'psalm'],
+            7: ['psalm'],
+            8: ['veni', 'psalm']
+        };
+        this.programIndex = 0;
         this.currentChant = 'veni';     // the reliable default
         this.phraseIndex = 0;           // which phrase of the chant is being sung
         this.tempoDrift = 0;            // smooth agogic random walk, ±8%
@@ -320,6 +575,68 @@ class GregorianEngine {
     }
 
     /**
+     * Build a chant-shaped object that sings Ps. 109 "Dixit Dominus" to the
+     * office psalm tone of the given mode — the authentic recitation grammar:
+     *
+     *   intonation (first verse only) → recitation on the tenor → mediant
+     *   cadence … breath … recitation on the tenor → termination (differentia)
+     *
+     * Each half-verse becomes one "phrase", so the ordinary scheduler gives
+     * the mediant and the differentia their agogic lengthening and a breath —
+     * exactly the shape of choir psalmody. Cadence cells are counted from the
+     * END of the half-verse (the standard simplification of accent-alignment);
+     * recitation syllables are flagged `r: 1` and move a touch quicker, the
+     * way a schola patters through the tenor and settles into the cadence.
+     */
+    buildPsalmChant(mode) {
+        const tone = this.psalmTones[mode] || this.psalmTones[8];
+        const phrases = [];
+        this.psalterVerses.forEach((verse, vi) => {
+            // First half-verse: [intonation] + recitation + mediant.
+            const A = [];
+            const into = vi === 0 ? tone.intonation : [];   // intone verse 1 only
+            const med = tone.mediant;
+            let i = 0;
+            const reciteA = Math.max(0, verse.a.length - into.length - med.length);
+            for (const cell of into) {
+                const [syl, v] = verse.a[i++];
+                A.push({ syl, v, n: cell.slice() });
+            }
+            for (let r = 0; r < reciteA; r++) {
+                const [syl, v] = verse.a[i++];
+                A.push({ syl, v, n: [tone.tenor], r: 1 });
+            }
+            for (const cell of med) {
+                if (i >= verse.a.length) break;
+                const [syl, v] = verse.a[i++];
+                A.push({ syl, v, n: cell.slice() });
+            }
+            phrases.push(A);
+
+            // Second half-verse: recitation + termination (differentia).
+            const B = [];
+            const term = tone.termination;
+            let j = 0;
+            const reciteB = Math.max(0, verse.b.length - term.length);
+            for (let r = 0; r < reciteB; r++) {
+                const [syl, v] = verse.b[j++];
+                B.push({ syl, v, n: [tone.tenor], r: 1 });
+            }
+            for (const cell of term) {
+                if (j >= verse.b.length) break;
+                const [syl, v] = verse.b[j++];
+                B.push({ syl, v, n: cell.slice() });
+            }
+            phrases.push(B);
+        });
+        return {
+            title: 'Ps. 109 Dixit Dominus — Tone ' + mode + ' (' + tone.differentia + ')',
+            mode, genre: 'office psalmody',
+            phrases
+        };
+    }
+
+    /**
      * Load the current phrase of the encoded chant into `this.phrase`.
      * The chant is strophic: after the final phrase it wraps back to the
      * first, as a schola would sing successive stanzas of the hymn.
@@ -351,16 +668,31 @@ class GregorianEngine {
         // A neume gets a little more time than a single punctum, and its
         // duration is split evenly across its notes, all on the one vowel.
         let syllableDur = base * (1 + 0.55 * (notes.length - 1));
+        // Psalm-tone recitation syllables (flagged r:1) patter a touch
+        // quicker on the tenor, as a schola does between the cadences.
+        if (item.r) syllableDur *= 0.85;
         // Agogic lengthening: the last syllable of each phrase doubles.
         if (isLast) syllableDur *= 2;
         const noteDur = syllableDur / notes.length;
 
+        // Leave a little room before the vowel for an onset consonant, so a
+        // syllable is heard as "sss-A" rather than the consonant landing on top
+        // of the vowel. Then articulate the syllable's consonants on ONE lead
+        // monk (not the whole schola, so consonants don't stack N-fold) — the
+        // melisma still flows on the one vowel, exactly as chant is sung.
+        const now = this.ctx.currentTime;
+        const hasOnset = /^[^aeiouyæœ]/i.test(item.syl || '');
+        const lead = hasOnset ? 0.09 : 0;
         notes.forEach((freq, i) => {
             // Within a neume, slide legato from the previous note (playNote
             // applies a short portamento when slideFrom is given).
             const prev = i > 0 ? notes[i - 1] : null;
-            this.playNote(freq, noteDur, item.v, prev, i * noteDur);
+            this.playNote(freq, noteDur, item.v, prev, lead + i * noteDur);
         });
+        const lead0 = this.voices[0];
+        if (lead0 && lead0.voice.articulate && item.syl) {
+            lead0.voice.articulate(item.syl, now + lead, now + lead + syllableDur, notes[0]);
+        }
 
         this.phrasePos++;
         const phraseEnd = this.phrasePos >= this.phrase.length;
@@ -375,7 +707,7 @@ class GregorianEngine {
             this.buildPhrase();
         }
 
-        this.phraseTimeout = setTimeout(() => this.scheduleSyllable(), (syllableDur + pause) * 1000);
+        this.phraseTimeout = setTimeout(() => this.scheduleSyllable(), (lead + syllableDur + pause) * 1000);
     }
 
     /** One sung note across every monk in the schola. */
@@ -419,14 +751,26 @@ class GregorianEngine {
     end() { this.stop(); }
 
     setMode(mode) {
-        this.currentMode = mode;
-        // Mode buttons now select among the encoded chants: Mode 8 (VIII)
-        // sings "Veni Creator Spiritus", Mode 5 (V) "Viderunt omnes". All
-        // other modes are safe no-ops — the schola keeps singing as it was.
-        const chantByMode = { 8: 'veni', 5: 'viderunt' };
-        const chant = chantByMode[mode];
-        if (chant && chant !== this.currentChant) {
-            this.currentChant = chant;
+        // First press of a mode selects its chant; pressing the SAME mode
+        // again cycles through that mode's programme (chant(s), then the
+        // mode's office psalm tone). See this.modePrograms.
+        const program = this.modePrograms[mode] || ['psalm'];
+        if (mode === this.currentMode) {
+            this.programIndex = (this.programIndex + 1) % program.length;
+        } else {
+            this.currentMode = mode;
+            this.programIndex = 0;
+        }
+        const key = program[this.programIndex];
+        let chantKey;
+        if (key === 'psalm') {
+            chantKey = 'psalm' + mode;
+            if (!this.chants[chantKey]) this.chants[chantKey] = this.buildPsalmChant(mode);
+        } else {
+            chantKey = key;
+        }
+        if (chantKey !== this.currentChant) {
+            this.currentChant = chantKey;
             this.phraseIndex = 0;
             if (this.isPlaying) this.buildPhrase();
         }
