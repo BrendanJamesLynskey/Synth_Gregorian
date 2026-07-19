@@ -2039,7 +2039,10 @@ class GregorianEngine {
             vowel: this.vowelSequence[0],
             detuneCents,
             breath: 0.03 + this.breath * 0.06,
-            vibDepth: 0.006
+            // Plainchant is sung STRAIGHT-tone — only the faintest shimmer, not
+            // the fuller vibrato of the polyphonic apps (which would wobble on an
+            // exposed solo line). vibCents overrides the library's default depth.
+            vibCents: 7
         });
         voice.output.connect(noteGain);
 
