@@ -1,6 +1,8 @@
 # Synth Gregorian — Plainsong Synthesizer
 
-A web-based synthesizer that sings **Gregorian chant** in real time in the browser. The singing voice is now **real recorded singing**: the shared [`vocal-voices.js`](vocal-voices.js) library plays actual sung vowels from the [**VocalSet**](https://zenodo.org/records/1193957) corpus (CC BY 4.0), looped seamlessly and mapped across pitch with **formant-preserving pitch-shifting** (TD-PSOLA) so the vocal-tract resonances stay put as the note moves — no "chipmunk". (The library's earlier pure-synthesis engines, including IRCAM *CHANT*/FOF, remain available.)
+A web-based synthesizer that sings **Gregorian chant** in real time in the browser. The singing voice is **real recorded singing**: the shared [`vocal-voices.js`](vocal-voices.js) library plays actual sung vowels from the [**VocalSet**](https://zenodo.org/records/1193957) corpus (CC BY 4.0), looped seamlessly and pitch-mapped by a **formant-preserving**, in-tune splice sampler so the vocal-tract resonances stay put as the note moves — no "chipmunk".
+
+The schola sings a **repertoire of real chant**, encoded note-for-note from the Solesmes books (Graduale Romanum / Liber Usualis, via the GregoBase transcriptions) and spanning the main genres: the hymn *Veni Creator Spiritus*, the *Dies irae* sequence, Kyrie XI *Orbis factor*, the Christmas gradual *Viderunt omnes* (the respond Pérotin set as organum) and the *Requiem aeternam* introit with its psalm verse — plus authentic **office psalm-tone recitation** in all eight modes (intonation, recitation on the tenor, mediant cadence, termination).
 
 > **Credit:** sampled voices derived from [**VocalSet**](https://zenodo.org/records/1193957) (Wilkins, Seetharaman, Wahl & Pardo, ISMIR 2018), CC BY 4.0.
 
@@ -16,10 +18,10 @@ Its melodies move mostly by step within one of **eight church modes**, rising fr
 
 ## How it sounds high quality
 
-Rather than pure tones, the engine sings each monk with the shared **FOF vocal-synthesis** library ([`vocal-voices.js`](vocal-voices.js), default technique **FOF** — the IRCAM *CHANT* method):
+Rather than pure tones, the engine sings each monk with the shared **sampled-voice** library ([`vocal-voices.js`](vocal-voices.js)):
 
-- **FOF grains** — once per glottal period a burst of overlapping damped formant **grains** is fired (each formant a sine wrapped in an excitation envelope whose decay sets its bandwidth); overlapping them at the fundamental rate reconstructs a true, convincingly-sung vocal spectrum with real Latin-vowel formants (a e i o u). It runs sample-accurately in an `AudioWorklet`.
-- **Persistent voice** — each monk is a persistent library voice with its own detune, breath and vibrato; only the pitch and vowel change from note to note, exactly as in real singing. Vowels morph continuously as the text unfolds.
+- **Real voice** — actual sung vowels from the **VocalSet** corpus, looped into seamless sustains by a phase-coherent **splice sampler**: each note plays the nearest recorded pitch, detuned by at most about a semitone, so the formants stay put and the note is dead in tune. Syllable onsets are articulated with procedural **consonants** (sibilants, plosives, nasals), so the Latin text is pronounced while the melismas flow on the vowel.
+- **Persistent, straight-tone voice** — each monk is a persistent library voice with its own detune and breath; only the pitch and vowel change from note to note, exactly as in real singing. Plainchant is sung **straight-tone**: only the gentlest vibrato shimmer, not the fuller vibrato of the polyphonic apps, which would wobble on an exposed unison line.
 - **Ensemble** — a *schola* of detuned, jittered voices, a soft limiter to hold the full choir, plus a large stone-**abbey convolution reverb** (~5 s tail with early reflections).
 
 ## Where it sits — the lineage of early Western music
@@ -34,15 +36,15 @@ Plainsong ──► Organum ──► Ars Nova ──► (Renaissance polyphony)
    └── its melodies became the fixed cantus firmus beneath centuries of polyphony
 ```
 
-A parallel, secular, vernacular branch runs alongside it: **Troubadour** song → instrumental **Estampie** dances.
+A parallel, secular, vernacular branch runs alongside it: **Troubadour** song.
 
-| App | Style | Synthesis technique |
+| App | Style | Voice |
 |---|---|---|
-| **Synth Gregorian** (this) | Plainsong | FOF vocal synthesis (shared `vocal-voices.js` library) |
-| [Synth Organum](https://github.com/BrendanJamesLynskey/Synth_Organum) | Notre-Dame polyphony | FOF vocal synthesis in Pythagorean just intonation |
-| [Synth Ars Nova](https://github.com/BrendanJamesLynskey/Synth_ArsNova) | 14th-c. isorhythm | Formant vocal synthesis + isorhythmic talea/color |
-| [Synth Troubadour](https://github.com/BrendanJamesLynskey/Synth_Troubadour) | Secular monophony | Formant vocal melody over a subtractive drone |
-| [Synth Estampie](https://github.com/BrendanJamesLynskey/Synth_Estampie) | Medieval dance | Physical modelling (instrumental dance) |
+| **Synth Gregorian** (this) | Plainsong | Real sampled voices, straight-tone chant |
+| [Synth Organum](https://github.com/BrendanJamesLynskey/Synth_Organum) | Notre-Dame polyphony | Real sampled voices in Pythagorean just intonation |
+| [Synth Troubadour](https://github.com/BrendanJamesLynskey/Synth_Troubadour) | Secular monophony | Real sampled voice over a subtractive vielle drone |
+
+The shared sampled voice at the heart of all three is explored in depth — alongside a century of pure-synthesis techniques — in [Vocal Synthesis](https://github.com/BrendanJamesLynskey/Vocal_Synthesis).
 
 ## Quick start
 
@@ -61,8 +63,8 @@ Open <http://localhost:8080> and press **Begin Chant**. Any static file server w
 | `index.html` | Landing page — detects device, links to desktop or mobile |
 | `desktop.html` | Desktop web app |
 | `style.css` | Manuscript-themed styles (parchment, ink, gold) |
-| `vocal-voices.js` | Shared library of interchangeable vocal-synthesis engines (FOF, formant, additive, vocal-tract) |
-| `gregorian-engine.js` | Plainsong engine driving `vocal-voices.js` (Web Audio API) |
+| `vocal-voices.js` | Shared sampled-voice library — real VocalSet vowels, formant-preserving pitch-mapping, and procedural consonant articulation |
+| `gregorian-engine.js` | Plainsong engine (chant repertoire + psalm tones) driving `vocal-voices.js` (Web Audio API) |
 | `app.js` | UI controller, stave visualizer, candle motes |
 | `gregorian_mobile.html` | Self-contained mobile version (single file) |
 
@@ -70,7 +72,7 @@ Open <http://localhost:8080> and press **Begin Chant**. Any static file server w
 
 | Control | Description |
 |---|---|
-| **Mode** | One of the 8 church tones (Dorian → Hypomixolydian) |
+| **Mode** | One of the 8 church tones (Dorian → Hypomixolydian) — chooses the repertoire: a mode with an encoded chant sings it (I *Dies irae* / Kyrie XI, V *Viderunt omnes*, VI *Requiem*, VIII *Veni Creator*), and pressing the same mode again cycles through to its office psalm tone; modes with no encoded chant go straight to psalmody |
 | **Voice** | Overall vocal volume |
 | **Breath** | Amount of airy noise in the voice |
 | **Abbey Reverb** | Wet/dry mix of the stone-abbey convolution reverb |
