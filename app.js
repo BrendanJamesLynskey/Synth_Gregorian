@@ -41,6 +41,12 @@ function setMode(mode) {
     engine.setMode(mode);
 }
 
+/** Timbre: 'sine' (pure tones, default) or 'sampler' (real sampled voices). */
+function setTimbre(mode) {
+    document.querySelectorAll('.timbre-btn').forEach(b => b.classList.toggle('active', b.dataset.timbre === mode));
+    engine.setVoiceMode(mode);
+}
+
 function setVoices(count) {
     document.querySelectorAll('.choir-btn').forEach(b => b.classList.remove('active'));
     document.querySelector(`.choir-btn[data-voices="${count}"]`).classList.add('active');

@@ -75,6 +75,14 @@
                 </div>
             </div>
 
+            <div class="control-group">
+                <label class="control-label">&#x2726; Timbre</label>
+                <div class="mode-selector">
+                    <button class="mode-btn timbre-btn active" data-timbre="sine" onclick="setTimbre('sine')">Sine<small>pure tones</small></button>
+                    <button class="mode-btn timbre-btn" data-timbre="sampler" onclick="setTimbre('sampler')">Voices<small>sampled choir</small></button>
+                </div>
+            </div>
+
             <div class="sliders-grid">
                 <div class="control-group"><label class="control-label">&#x2726; Voice</label><input type="range" class="slider" id="voiceVol" min="0" max="100" value="75" oninput="updateVoice()"></div>
                 <div class="control-group"><label class="control-label">&#x2726; Breath</label><input type="range" class="slider" id="breathAmt" min="0" max="100" value="35" oninput="updateBreath()"></div>

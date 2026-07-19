@@ -42,6 +42,8 @@ class GregorianEngine {
         this.isPlaying = false;
         this.currentMode = 8;           // matches the default chant (Veni Creator)
         this.numVoices = 1;
+        this.voiceMode = 'sine';        // DEFAULT: ethereal pure sine tones (like Synth Orthodox);
+                                        // 'sampler' switches to the real recorded voices
         this.tempo = 52;                // syllables per minute-ish pacing
         this.voiceVolume = 0.75;
         this.breath = 0.35;
@@ -496,7 +498,7 @@ class GregorianEngine {
         const detuneCents = (index - (total - 1) / 2) * 9 + (Math.random() - 0.5) * 5;
 
         const voice = VocalVoices.create(this.ctx, {
-            technique: 'sampler',           // real recorded voices (was 'fof')
+            technique: this.voiceMode,      // 'sine' (default, pure tones) | 'sampler' (real voices)
             voice: 'male', ensemble: 1,     // the schola of monks supplies the width
             vowel: this.vowelSequence[0],
             detuneCents,
@@ -530,6 +532,14 @@ class GregorianEngine {
             } catch (e) {}
         }
         this.voices = [];
+    }
+
+    /** Switch the voice between 'sine' (pure tones) and 'sampler' (real voices), live. */
+    setVoiceMode(mode) {
+        if (mode !== 'sine' && mode !== 'sampler') return;
+        if (mode === this.voiceMode) return;
+        this.voiceMode = mode;
+        if (this.ctx && this.voices.length) this.setupVoices();   // rebuild the schola in the new voice
     }
 
     /** Morph a monk's library voice toward a new sung vowel. */

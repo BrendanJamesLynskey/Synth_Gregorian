@@ -329,6 +329,14 @@ main { padding-left: 1rem; padding-right: 1rem; }
                 </div>
             </div>
 
+            <div class="control-group">
+                <label class="control-label">&#x2726; Timbre</label>
+                <div class="mode-selector">
+                    <button class="mode-btn timbre-btn active" data-timbre="sine" onclick="setTimbre('sine')">Sine<small>pure tones</small></button>
+                    <button class="mode-btn timbre-btn" data-timbre="sampler" onclick="setTimbre('sampler')">Voices<small>sampled choir</small></button>
+                </div>
+            </div>
+
             <div class="sliders-grid">
                 <div class="control-group"><label class="control-label">&#x2726; Voice</label><input type="range" class="slider" id="voiceVol" min="0" max="100" value="75" oninput="updateVoice()"></div>
                 <div class="control-group"><label class="control-label">&#x2726; Breath</label><input type="range" class="slider" id="breathAmt" min="0" max="100" value="35" oninput="updateBreath()"></div>
@@ -721,6 +729,47 @@ main { padding-left: 1rem; padding-right: 1rem; }
         const detuneFactor = Math.pow(2, detuneCents / 1200);
         const breath = opts.breath != null ? opts.breath : 0.06;
         const vibDepth = opts.vibDepth != null ? opts.vibDepth : 0.006;
+
+        // ── Pure sine-tone voice ────────────────────────────────────────────
+        // An ethereal, wordless chant colour (as in Synth Orthodox): a sine
+        // fundamental + a faint octave shimmer + a gentle vibrato. No formants,
+        // no vowel, no consonants — just clean tone. The app's schola of detuned
+        // voices supplies the choir width. Same API as every other technique.
+        if (technique === 'sine') {
+            const out = ctx.createGain(); out.gain.value = 0;                 // note gate
+            const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = 220; osc.detune.value = detuneCents;
+            const oscGain = ctx.createGain(); oscGain.gain.value = 0.9; osc.connect(oscGain); oscGain.connect(out);
+            const oct = ctx.createOscillator(); oct.type = 'sine'; oct.frequency.value = 440; oct.detune.value = detuneCents;
+            const octGain = ctx.createGain(); octGain.gain.value = 0.085; oct.connect(octGain); octGain.connect(out);   // faint octave shimmer
+            const vibCents = opts.vibCents != null ? opts.vibCents : (vibDepth * 1200);
+            const lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 4.6 + Math.random() * 1.2;
+            const lfoDepth = ctx.createGain(); lfoDepth.gain.value = Math.max(0, vibCents);
+            lfo.connect(lfoDepth); lfoDepth.connect(osc.detune); lfoDepth.connect(oct.detune);
+            osc.start(); oct.start(); lfo.start(ctx.currentTime + Math.random() * 0.1);
+            return {
+                technique, output: out, articulate() {},
+                setFrequency(f, t, glide) {
+                    if (!isFinite(f) || f <= 0) return;
+                    const t0 = (t && t > ctx.currentTime) ? t : ctx.currentTime;
+                    osc.frequency.cancelScheduledValues(t0); oct.frequency.cancelScheduledValues(t0);
+                    if (glide && glide > 0) {
+                        osc.frequency.setValueAtTime(osc.frequency.value, t0); osc.frequency.exponentialRampToValueAtTime(f, t0 + glide);
+                        oct.frequency.setValueAtTime(oct.frequency.value, t0); oct.frequency.exponentialRampToValueAtTime(f * 2, t0 + glide);
+                    } else { osc.frequency.setValueAtTime(f, t0); oct.frequency.setValueAtTime(f * 2, t0); }
+                },
+                setLevel(v, t) {
+                    const g = out.gain; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t);
+                    if (v >= g.value) g.linearRampToValueAtTime(v, t + 0.03); else g.setTargetAtTime(v, t, 0.08);
+                },
+                setVowel() {},
+                dispose() {
+                    const t = ctx.currentTime, fade = 0.15;
+                    try { out.gain.cancelScheduledValues(t); out.gain.setValueAtTime(out.gain.value, t); out.gain.linearRampToValueAtTime(0, t + fade); } catch (e) {}
+                    try { osc.stop(t + fade + 0.05); oct.stop(t + fade + 0.05); lfo.stop(t + fade + 0.05); } catch (e) {}
+                    setTimeout(() => { try { out.disconnect(); } catch (e) {} }, (fade + 0.1) * 1000);
+                }
+            };
+        }
 
         if ((technique === 'fof' || technique === 'tract') && ctx.__vocalWorklets) {
             const name = technique === 'fof' ? 'fof-voice' : 'tract-voice';
@@ -1580,6 +1629,8 @@ class GregorianEngine {
         this.isPlaying = false;
         this.currentMode = 8;           // matches the default chant (Veni Creator)
         this.numVoices = 1;
+        this.voiceMode = 'sine';        // DEFAULT: ethereal pure sine tones (like Synth Orthodox);
+                                        // 'sampler' switches to the real recorded voices
         this.tempo = 52;                // syllables per minute-ish pacing
         this.voiceVolume = 0.75;
         this.breath = 0.35;
@@ -2034,7 +2085,7 @@ class GregorianEngine {
         const detuneCents = (index - (total - 1) / 2) * 9 + (Math.random() - 0.5) * 5;
 
         const voice = VocalVoices.create(this.ctx, {
-            technique: 'sampler',           // real recorded voices (was 'fof')
+            technique: this.voiceMode,      // 'sine' (default, pure tones) | 'sampler' (real voices)
             voice: 'male', ensemble: 1,     // the schola of monks supplies the width
             vowel: this.vowelSequence[0],
             detuneCents,
@@ -2068,6 +2119,14 @@ class GregorianEngine {
             } catch (e) {}
         }
         this.voices = [];
+    }
+
+    /** Switch the voice between 'sine' (pure tones) and 'sampler' (real voices), live. */
+    setVoiceMode(mode) {
+        if (mode !== 'sine' && mode !== 'sampler') return;
+        if (mode === this.voiceMode) return;
+        this.voiceMode = mode;
+        if (this.ctx && this.voices.length) this.setupVoices();   // rebuild the schola in the new voice
     }
 
     /** Morph a monk's library voice toward a new sung vowel. */
@@ -2397,6 +2456,12 @@ function setMode(mode) {
     document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
     document.querySelector(`.mode-btn[data-mode="${mode}"]`).classList.add('active');
     engine.setMode(mode);
+}
+
+/** Timbre: 'sine' (pure tones, default) or 'sampler' (real sampled voices). */
+function setTimbre(mode) {
+    document.querySelectorAll('.timbre-btn').forEach(b => b.classList.toggle('active', b.dataset.timbre === mode));
+    engine.setVoiceMode(mode);
 }
 
 function setVoices(count) {
