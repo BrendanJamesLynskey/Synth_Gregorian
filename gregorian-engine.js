@@ -1,14 +1,15 @@
 /**
- * Gregorian Chant Synthesis Engine — FOF Vocal Synthesis
+ * Gregorian Chant Synthesis Engine — Ethereal Sine Tones + Sampled Voices
  *
- * Rather than pure sine tones, this engine sings each monk with the shared
- * `vocal-voices.js` vocal-synthesis library (default technique FOF — Fonction
- * d'Onde Formantique, the IRCAM CHANT method): once per glottal period a burst
- * of overlapping damped formant grains reconstructs a true, convincingly-sung
- * vocal spectrum with real vowel formants. Each monk is a persistent library
- * voice with its own detune, breath and vibrato; only the pitch and vowel change
- * from note to note, exactly as in real singing, and the vowel morphs
- * continuously as the Latin text unfolds.
+ * By DEFAULT each monk is voiced with PURE SINE TONES (a sine fundamental + a
+ * faint octave shimmer + a gentle vibrato) — a slow, blooming, ethereal chant
+ * colour in the vein of Synth Orthodox / Synth Spectralist. A "Timbre" toggle
+ * (setVoiceMode) switches to 'sampler': the shared `vocal-voices.js` library's
+ * REAL recorded voices (VocalSet sung vowels, in-tune splice sampler with vibrato
+ * and breath). Either way each monk is a persistent library voice with its own
+ * detune; only the pitch (and, for the sampled voice, the vowel) changes from
+ * note to note. Notes bloom in on a long soft attack and ring out on a long
+ * decay into a deep abbey-reverb wash.
  *
  * The schola sings a REPERTOIRE of real chant, encoded note-for-note from the
  * Solesmes books (Graduale Romanum / Liber Usualis, via the GregoBase GABC
@@ -747,10 +748,12 @@ class GregorianEngine {
             const g = voice.noteGain.gain;
             const attack = Math.min(duration * 0.6, Math.max(0.35, duration * 0.5));   // slow bloom
             const release = Math.max(1.6, duration * 1.4);                             // long ring-out
-            g.cancelScheduledValues(t0);
-            g.setValueAtTime(Math.max(0.0001, g.value), t0);
+            // Hold the value continuously across the re-trigger (no jump), and RAMP
+            // every stage — a stepped setValueAtTime clicks on the exposed sine tone.
+            if (g.cancelAndHoldAtTime) g.cancelAndHoldAtTime(t0);
+            else { g.cancelScheduledValues(t0); g.setValueAtTime(Math.max(0.0001, g.value), t0); }
             g.linearRampToValueAtTime(1.0, t0 + attack);
-            g.setValueAtTime(0.92, t0 + Math.max(attack, duration * 0.75));
+            g.linearRampToValueAtTime(0.92, t0 + Math.max(attack + 0.02, duration * 0.75));
             g.exponentialRampToValueAtTime(0.001, t0 + duration + release);
         }
     }
