@@ -2455,7 +2455,9 @@ async function toggleChant() {
 // === Controls ===
 
 function setMode(mode) {
-    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    // Scope to the church-tone buttons only — the Timbre buttons share the
+    // .mode-btn style class but must keep their own active state.
+    document.querySelectorAll('.mode-btn[data-mode]').forEach(b => b.classList.remove('active'));
     document.querySelector(`.mode-btn[data-mode="${mode}"]`).classList.add('active');
     engine.setMode(mode);
 }
