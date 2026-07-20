@@ -44,10 +44,10 @@ class GregorianEngine {
         this.numVoices = 1;
         this.voiceMode = 'sine';        // DEFAULT: ethereal pure sine tones (like Synth Orthodox);
                                         // 'sampler' switches to the real recorded voices
-        this.tempo = 52;                // syllables per minute-ish pacing
+        this.tempo = 38;                // slow, spacious, ethereal pacing (was 52)
         this.voiceVolume = 0.75;
         this.breath = 0.35;
-        this.reverbMix = 0.6;
+        this.reverbMix = 0.8;           // a deep wash — notes bloom and bleed together
 
         this.voices = [];               // persistent per-monk vocal tracts
         this.phraseTimeout = null;
@@ -450,14 +450,14 @@ class GregorianEngine {
     /** Large stone abbey — ~5 s tail with sparse early reflections. */
     async createReverb() {
         const sr = this.ctx.sampleRate;
-        const length = Math.floor(sr * 5);
+        const length = Math.floor(sr * 8);              // long ethereal tail
         const impulse = this.ctx.createBuffer(2, length, sr);
         const reflections = [0.011, 0.023, 0.037, 0.052, 0.071, 0.093, 0.121, 0.149, 0.181];
         for (let ch = 0; ch < 2; ch++) {
             const data = impulse.getChannelData(ch);
             for (let i = 0; i < length; i++) {
                 const t = i / sr;
-                const env = Math.exp(-t * 0.7) * 0.35 + Math.exp(-t * 0.32) * 0.4 + Math.exp(-t * 0.16) * 0.22;
+                const env = Math.exp(-t * 0.45) * 0.3 + Math.exp(-t * 0.2) * 0.4 + Math.exp(-t * 0.09) * 0.3;   // slow, blooming decay
                 data[i] = (Math.random() * 2 - 1) * env;
                 if (i < sr * 0.2) {
                     for (const d of reflections) {
@@ -672,7 +672,7 @@ class GregorianEngine {
         // no downbeats, just the pacing of spoken Latin.
         this.tempoDrift += (Math.random() - 0.5) * 0.045;
         this.tempoDrift = Math.max(-0.08, Math.min(0.08, this.tempoDrift));
-        const base = Math.max(0.32, Math.min(0.85, 0.47 * (52 / this.tempo)))
+        const base = Math.max(0.32, Math.min(1.7, 0.47 * (52 / this.tempo)))
                    * (1 + this.tempoDrift);
 
         const isLast = this.phrasePos === this.phrase.length - 1;
@@ -740,14 +740,17 @@ class GregorianEngine {
             }
             voice.voice.setLevel(1, t0);
 
-            // Re-shape this monk's per-note amplitude envelope.
+            // Re-shape this monk's per-note amplitude envelope. Ethereal /
+            // spectralist: each note BLOOMS in slowly and rings out on a long
+            // decay, so tones float and bleed into the reverb wash rather than
+            // being cleanly articulated.
             const g = voice.noteGain.gain;
-            const attack = Math.min(0.18, duration * 0.35);
-            const release = Math.max(0.25, duration * 0.6);
+            const attack = Math.min(duration * 0.6, Math.max(0.35, duration * 0.5));   // slow bloom
+            const release = Math.max(1.6, duration * 1.4);                             // long ring-out
             g.cancelScheduledValues(t0);
             g.setValueAtTime(Math.max(0.0001, g.value), t0);
             g.linearRampToValueAtTime(1.0, t0 + attack);
-            g.setValueAtTime(0.9, t0 + Math.max(attack, duration * 0.7));
+            g.setValueAtTime(0.92, t0 + Math.max(attack, duration * 0.75));
             g.exponentialRampToValueAtTime(0.001, t0 + duration + release);
         }
     }
